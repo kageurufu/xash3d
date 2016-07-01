@@ -2216,7 +2216,7 @@ pfnLocalPlayerDucking
 */
 int pfnLocalPlayerDucking( void )
 {
-	return cl.predicted.usehull == 1;
+	return cl.frame.client.bInDuck;
 }
 
 /*
