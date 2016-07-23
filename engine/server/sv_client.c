@@ -488,7 +488,7 @@ void SV_DropClient( sv_client_t *drop )
 	if( NET_CompareBaseAdr( drop->netchan.remote_address, host.rd.address ) )
 		SV_EndRedirect();
 
-	SV_ClearCustomizationList( &drop->customization );
+	COM_ClearCustomizationList( &drop->customization, false );
 
 	// throw away any residual garbage in the channel.
 	Netchan_Clear( &drop->netchan );
@@ -1043,7 +1043,7 @@ void SV_FullUpdateMovevars( sv_client_t *cl, sizebuf_t *msg )
 	movevars_t	nullmovevars;
 
 	Q_memset( &nullmovevars, 0, sizeof( nullmovevars ));
-	MSG_WriteDeltaMovevars( msg, &nullmovevars, &svgame.movevars );
+	BF_WriteDeltaMovevars( msg, &nullmovevars, &svgame.movevars );
 }
 
 /*
@@ -1352,8 +1352,8 @@ void SV_SendResourceList_f( sv_client_t *cl )
 	int		index = 0;
 	int		rescount = 0;
 	resourcelist_t	reslist;	// g-cont. what about stack???
-	size_t		msg_size;
-	int msg_start, msg_end;
+	size_t		BF_size;
+	int BF_start, BF_end;
 	char *resfile;
 	char *mapresfile;
 	char mapresfilename[256];
@@ -1472,11 +1472,11 @@ void SV_SendResourceList_f( sv_client_t *cl )
 	if( mapresfile )
 		Mem_Free( mapresfile );
 
-	msg_size = BF_GetRealBytesWritten( &cl->netchan.message ); // start
+	BF_size = BF_GetRealBytesWritten( &cl->netchan.message ); // start
 
 	index = cl->resources_sent;
 	BF_WriteByte( &cl->netchan.message, svc_resourcelist );
-	msg_start = BF_GetNumBitsWritten( &cl->netchan.message );
+	BF_start = BF_GetNumBitsWritten( &cl->netchan.message );
 	BF_WriteWord( &cl->netchan.message, rescount );
 
 	for( ; ( index < rescount ) && ( BF_GetNumBytesWritten( &cl->netchan.message ) <  cl->maxpacket ); index++ )
@@ -1487,16 +1487,16 @@ void SV_SendResourceList_f( sv_client_t *cl )
 
 
 	// change real sent resource count
-	msg_end = BF_GetNumBitsWritten( &cl->netchan.message );
-	BF_SeekToBit( &cl->netchan.message, msg_start );
+	BF_end = BF_GetNumBitsWritten( &cl->netchan.message );
+	BF_SeekToBit( &cl->netchan.message, BF_start );
 	BF_WriteWord( &cl->netchan.message, index - cl->resources_sent + 1 );
-	BF_SeekToBit( &cl->netchan.message, msg_end );
+	BF_SeekToBit( &cl->netchan.message, BF_end );
 
 	cl->resources_sent = index;
 	cl->resources_count = rescount;
 
 	Msg( "Count res: %d\n", rescount );
-	Msg( "ResList size: %s\n", Q_memprint( BF_GetRealBytesWritten( &cl->netchan.message ) - msg_size ));
+	Msg( "ResList size: %s\n", Q_memprint( BF_GetRealBytesWritten( &cl->netchan.message ) - BF_size ));
 }
 
 /*
@@ -1833,7 +1833,7 @@ void SV_Baselines_f( sv_client_t *cl )
 		if( base->number && ( base->modelindex || base->effects != EF_NODRAW ))
 		{
 			BF_WriteByte( &cl->netchan.message, svc_spawnbaseline );
-			MSG_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true, SV_IsPlayerIndex( base->number ), sv.time );
+			BF_WriteDeltaEntity( &nullstate, base, &cl->netchan.message, true, SV_IsPlayerIndex( base->number ), sv.time );
 		}
 		start++;
 	}
@@ -2809,6 +2809,52 @@ void SV_EntCreate_f( sv_client_t *cl )
 
 }
 
+/*
+==================
+SV_SendResources
+==================
+*/
+void SV_SendResources(sizebuf_t *msg)
+{
+	byte	nullrguc[32];
+	int	i;
+
+	Q_memset( nullrguc, 0, sizeof( nullrguc ));
+
+	BF_WriteByte( msg, svc_customization );
+	BF_WriteLong( msg, svs.spawncount );
+
+	// g-cont. This is more than HL limit but unmatched with GoldSrc protocol
+	BF_WriteSBitLong( msg, sv.num_resources, MAX_MODEL_BITS );
+
+	for( i = 0; i < sv.num_resources; i++ )
+	{
+		BF_WriteSBitLong( msg, sv.resources[i].type, 4 );
+		BF_WriteString( msg, sv.resources[i].szFileName );
+		BF_WriteSBitLong( msg, sv.resources[i].nIndex, MAX_MODEL_BITS );
+		BF_WriteSBitLong( msg, sv.resources[i].nDownloadSize, 24 );	// prevent to download a very big files?
+		BF_WriteSBitLong( msg, sv.resources[i].ucFlags, 3 );	// g-cont. why only first three flags?
+
+		if( sv.resources[i].ucFlags & RES_CUSTOM )
+		{
+			BF_WriteBits( msg, sv.resources[i].rgucMD5_hash, sizeof( sv.resources[i].rgucMD5_hash ));
+		}
+
+		if( Q_memcmp( nullrguc, sv.resources[i].rguc_reserved, sizeof( nullrguc )))
+		{
+			BF_WriteOneBit( msg, 1 );
+			BF_WriteBits( msg, sv.resources[i].rguc_reserved, sizeof( sv.resources[i].rguc_reserved ));
+
+		}
+		else
+		{
+			BF_WriteOneBit( msg, 0 );
+		}
+	}
+
+	SV_SendConsistencyList( msg );
+}
+
 
 /*
 ==================
@@ -3089,7 +3135,7 @@ static void SV_ParseClientMove( sv_client_t *cl, sizebuf_t *msg )
 	for( i = numcmds - 1; i >= 0; i-- )
 	{
 		to = &cmds[i];
-		MSG_ReadDeltaUsercmd( msg, from, to );
+		BF_ReadDeltaUsercmd( msg, from, to );
 		from = to; // get new baseline
 	}
 

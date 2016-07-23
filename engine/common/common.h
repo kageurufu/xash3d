@@ -775,7 +775,15 @@ void MD5Init( MD5Context_t *ctx );
 void MD5Update( MD5Context_t *ctx, const byte *buf, uint len );
 void MD5Final( byte digest[16], MD5Context_t *ctx );
 qboolean MD5_HashFile( byte digest[16], const char *pszFileName, uint seed[4] );
+char *MD5_Print( byte digest[16] );
 uint Com_HashKey( const char *string, uint hashSize );
+
+//
+// custom.c
+//
+int  COM_CreateCustomization( customization_t *pListHead, resource_t *pResource, int playernumber, int flags, customization_t **pCust, int *nLumps );
+void COM_ClearCustomizationList( customization_t *pHead, qboolean bCleanDecals );
+int  COM_SizeofResourceList( resource_t *pList, resourceinfo_t *ri );
 
 //
 // hpak.c

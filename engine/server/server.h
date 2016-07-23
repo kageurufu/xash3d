@@ -214,8 +214,10 @@ typedef struct sv_client_s
 	double		timebase;			// client timebase
 
 	customization_t	customization;		// player customization linked list
-	resource_t	resource1;
-	resource_t	resource2;		// <mapname.res> from client (server downloading)
+	resource_t	resourcesneeded;
+	resource_t	resourcesonhand;		// <mapname.res> from client (server downloading)
+	qboolean    uploading;
+	qboolean    uploaddoneregistering;
 
 	qboolean		sendmovevars;
 	qboolean		sendinfo;
@@ -444,6 +446,7 @@ extern	convar_t		*sv_downloadurl;
 extern	convar_t		*sv_clientclean;
 extern 	convar_t		*sv_skipshield; // HACK for shield
 extern	convar_t		*sv_trace_messages;
+extern	convar_t		*sv_max_upload;
 extern	convar_t		*mp_consistency;
 extern	convar_t		*public_server;
 extern	convar_t		*physinfo;
@@ -555,13 +558,6 @@ void SV_RemoteCommand( netadr_t from, sizebuf_t *msg );
 void SV_Status_f( void );
 void SV_Newgame_f( void );
 qboolean SV_SetPlayer( void );
-
-//
-// sv_custom.c
-//
-void SV_ClearCustomizationList( customization_t *pHead );
-void SV_SendResources( sizebuf_t *msg );
-int SV_TransferConsistencyInfo( void );
 
 //
 // sv_frame.c

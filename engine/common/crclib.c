@@ -576,6 +576,27 @@ qboolean MD5_HashFile( byte digest[16], const char *pszFileName, uint seed[4] )
 }
 
 /*
+===========
+MD5_Print
+
+===========
+*/
+char *MD5_Print( byte digest[16] )
+{
+	static char ret[64];
+	char chunk[10];
+	int i;
+
+	Q_memset( ret, 0, sizeof( ret ) );
+
+	for( i = 0; i < 16; i++ )
+	{
+		Q_snprintf( chunk, sizeof( chunk ), "%02x", digest[i] );
+		Q_strncat( ret, chunk, sizeof( ret ) - Q_strlen( ret ) - 1 );
+	}
+}
+
+/*
 =================
 Com_HashKey
 
