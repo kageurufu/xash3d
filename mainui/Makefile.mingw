@@ -1,0 +1,16 @@
+
+FLAGS = -ggdb -Wall -Wno-unknown-pragmas
+INCLUDES = -I../common -I../engine -I../hlsdk/pm_shared -I.
+
+SRCS = $(wildcard *.cpp)
+
+OBJS = $(SRCS:.cpp=.o)
+
+%.o : %.cpp
+	gcc $(FLAGS) $(INCLUDES) -c $< -o $@
+
+menu.dll: $(OBJS)
+	g++ -shared -o menu.dll $(INCLUDES) $(OBJS)
+	
+clean:
+	$(RM) $(OBJS) menu.dll

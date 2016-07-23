@@ -30,13 +30,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ID_BACKGROUND	0
 #define ID_BANNER		1
 
-#define ID_EASY	  	2
-#define ID_MEDIUM	  	3
-#define ID_DIFFICULT  	4
-#define ID_CANCEL		5
+#define ID_HAZARDCOURSE	2
+#define ID_EASY			3
+#define ID_MEDIUM	  	4
+#define ID_DIFFICULT  	5
+#define ID_CANCEL		6
 
-#define ID_MSGBOX	 	6
-#define ID_MSGTEXT	 	7
+#define ID_MSGBOX	 	7
+#define ID_MSGTEXT	 	8
 #define ID_YES		130
 #define ID_NO	 	131
 
@@ -47,6 +48,7 @@ typedef struct
 	menuBitmap_s	background;
 	menuBitmap_s	banner;
 
+	menuPicButton_s	hazardCourse;
 	menuPicButton_s	easy;
 	menuPicButton_s	medium;
 	menuPicButton_s	hard;
@@ -98,6 +100,7 @@ static void UI_PromptDialog( float skill )
 
 	// toggle main menu between active\inactive
 	// show\hide quit dialog
+	uiNewGame.hazardCourse.generic.flags ^= QMF_INACTIVE;
 	uiNewGame.easy.generic.flags ^= QMF_INACTIVE; 
 	uiNewGame.medium.generic.flags ^= QMF_INACTIVE;
 	uiNewGame.hard.generic.flags ^= QMF_INACTIVE;
@@ -127,6 +130,27 @@ static const char *UI_NewGame_KeyFunc( int key, int down )
 
 /*
 =================
+UI_NewGame_HazardCourse
+=================
+*/
+static void UI_NewGame_HazardCourse( void )
+{
+	if( CVAR_GET_FLOAT( "host_serverstate" ) && CVAR_GET_FLOAT( "maxplayers" ) > 1 )
+		HOST_ENDGAME( "end of the game" );
+
+	CVAR_SET_FLOAT( "skill", 1.0f );
+	CVAR_SET_FLOAT( "deathmatch", 0.0f );
+	CVAR_SET_FLOAT( "teamplay", 0.0f );
+	CVAR_SET_FLOAT( "pausable", 1.0f ); // singleplayer is always allowing pause
+	CVAR_SET_FLOAT( "coop", 0.0f );
+
+	BACKGROUND_TRACK( NULL, NULL );
+
+	CLIENT_COMMAND( FALSE, "hazardcourse\n" );
+}
+
+/*
+=================
 UI_NewGame_Callback
 =================
 */
@@ -139,6 +163,9 @@ static void UI_NewGame_Callback( void *self, int event )
 
 	switch( item->id )
 	{
+	case ID_HAZARDCOURSE:
+		UI_NewGame_HazardCourse();
+		break;
 	case ID_EASY:
 		UI_PromptDialog( 1.0f );
 		break;
@@ -202,13 +229,24 @@ static void UI_NewGame_Init( void )
 	uiNewGame.banner.generic.height = UI_BANNER_HEIGHT;
 	uiNewGame.banner.pic = ART_BANNER;
 
+	uiNewGame.hazardCourse.generic.id = ID_HAZARDCOURSE;
+	uiNewGame.hazardCourse.generic.type = QMTYPE_BM_BUTTON;
+	uiNewGame.hazardCourse.generic.name = "Hazard course";
+	uiNewGame.hazardCourse.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
+	uiNewGame.hazardCourse.generic.statusText = MenuStrings[HINT_HAZARD_COURSE];
+	uiNewGame.hazardCourse.generic.x = 72;
+	uiNewGame.hazardCourse.generic.y = 230;
+	uiNewGame.hazardCourse.generic.callback = UI_NewGame_Callback;
+
+	UI_UtilSetupPicButton( &uiNewGame.hazardCourse, PC_HAZARD_COURSE );
+
 	uiNewGame.easy.generic.id = ID_EASY;
 	uiNewGame.easy.generic.type = QMTYPE_BM_BUTTON;
 	uiNewGame.easy.generic.flags = QMF_HIGHLIGHTIFFOCUS|QMF_DROPSHADOW|QMF_NOTIFY;
 	uiNewGame.easy.generic.name = "Easy";
 	uiNewGame.easy.generic.statusText = MenuStrings[HINT_SKILL_EASY];
 	uiNewGame.easy.generic.x = 72;
-	uiNewGame.easy.generic.y = 230;
+	uiNewGame.easy.generic.y = 280;
 	uiNewGame.easy.generic.callback = UI_NewGame_Callback;
 
 	UI_UtilSetupPicButton( &uiNewGame.easy, PC_EASY );
@@ -219,7 +257,7 @@ static void UI_NewGame_Init( void )
 	uiNewGame.medium.generic.name = "Medium";
 	uiNewGame.medium.generic.statusText = MenuStrings[HINT_SKILL_NORMAL];
 	uiNewGame.medium.generic.x = 72;
-	uiNewGame.medium.generic.y = 280;
+	uiNewGame.medium.generic.y = 330;
 	uiNewGame.medium.generic.callback = UI_NewGame_Callback;
 	
 	UI_UtilSetupPicButton( &uiNewGame.medium, PC_MEDIUM );
@@ -230,7 +268,7 @@ static void UI_NewGame_Init( void )
 	uiNewGame.hard.generic.name = "Difficult";
 	uiNewGame.hard.generic.statusText = MenuStrings[HINT_SKILL_HARD];
 	uiNewGame.hard.generic.x = 72;
-	uiNewGame.hard.generic.y = 330;
+	uiNewGame.hard.generic.y = 380;
 	uiNewGame.hard.generic.callback = UI_NewGame_Callback;
 
 	UI_UtilSetupPicButton( &uiNewGame.hard, PC_DIFFICULT );
@@ -241,7 +279,7 @@ static void UI_NewGame_Init( void )
 	uiNewGame.cancel.generic.name = "Cancel";
 	uiNewGame.cancel.generic.statusText = "Go back to the main Menu";
 	uiNewGame.cancel.generic.x = 72;
-	uiNewGame.cancel.generic.y = 380;
+	uiNewGame.cancel.generic.y = 430;
 	uiNewGame.cancel.generic.callback = UI_NewGame_Callback;
 
 	UI_UtilSetupPicButton( &uiNewGame.cancel, PC_CANCEL );
@@ -286,6 +324,7 @@ static void UI_NewGame_Init( void )
 
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.background );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.banner );
+	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.hazardCourse );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.easy );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.medium );
 	UI_AddItem( &uiNewGame.menu, (void *)&uiNewGame.hard );

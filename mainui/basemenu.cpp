@@ -48,8 +48,10 @@ const char	*uiSoundNull	= "";
 
 int		uiColorHelp	= 0xFFFFFFFF;	// 255, 255, 255, 255	// hint letters color
 int		uiPromptBgColor	= 0xFF404040;	// 64,  64,  64,  255	// dialog background color
-int		uiPromptTextColor	= 0xFFF0B418;	// 255, 160,  0,  255	// dialog or button letters color
-int		uiPromptFocusColor	= 0xFFFFFF00;	// 255, 255,  0,  255	// dialog or button focus letters color
+//int	uiPromptTextColor	= 0xFFF0B418;	// 255, 160,  0,  255	// dialog or button letters color
+int		uiPromptTextColor	= 0xFFF0F0F0;	// 240, 240, 240, 255	// dialog or button letters color
+//int		uiPromptFocusColor	= 0xFFFFFF00;	// 255, 255,  0,  255	// dialog or button focus letters color
+int		uiPromptFocusColor	= 0xFFFFFFFF;	// 255, 255, 256, 255	// dialog or button focus letters color
 int		uiInputTextColor	= 0xFFC0C0C0;	// 192, 192, 192, 255
 int		uiInputBgColor	= 0xFF404040;	// 64,  64,  64,  255	// field, scrollist, checkbox background color
 int		uiInputFgColor	= 0xFF555555;	// 85,  85,  85,  255	// field, scrollist, checkbox foreground color
